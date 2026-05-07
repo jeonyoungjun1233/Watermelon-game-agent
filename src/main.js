@@ -126,10 +126,25 @@ for (const level of LEVELS) {
 }
 
 function createAudioSystem() {
-  const bgm = new Audio(MEDIA.bgm);
+  const bgm = document.createElement("video");
+  bgm.src = MEDIA.bgm;
   bgm.loop = true;
   bgm.preload = "auto";
+  bgm.playsInline = true;
+  bgm.controls = false;
+  bgm.muted = false;
   bgm.volume = 0.2;
+  bgm.setAttribute("playsinline", "");
+  bgm.setAttribute("webkit-playsinline", "");
+  bgm.setAttribute("aria-hidden", "true");
+  bgm.style.position = "fixed";
+  bgm.style.width = "1px";
+  bgm.style.height = "1px";
+  bgm.style.opacity = "0";
+  bgm.style.pointerEvents = "none";
+  bgm.style.left = "-10px";
+  bgm.style.top = "-10px";
+  document.body.append(bgm);
 
   const old100 = new Audio(MEDIA.old100);
   old100.preload = "auto";
@@ -157,14 +172,16 @@ function createAudioSystem() {
     clip.play().catch(() => {});
   }
 
-  async function unlock() {
+  function unlock() {
     if (unlocked) {
       resumeBgm();
       return;
     }
 
     unlocked = true;
-    await Promise.allSettled(
+    resumeBgm();
+
+    Promise.allSettled(
       [...mergePool, ...buttonPool, old100].map(async (clip) => {
         const originalVolume = clip.volume;
         clip.volume = 0;
@@ -174,7 +191,6 @@ function createAudioSystem() {
         clip.volume = originalVolume;
       }),
     );
-    resumeBgm();
   }
 
   function resumeBgm() {
@@ -794,6 +810,8 @@ function draw(now) {
 }
 
 document.addEventListener("pointerdown", () => audio.unlock(), { capture: true });
+document.addEventListener("touchstart", () => audio.unlock(), { capture: true, passive: true });
+document.addEventListener("click", () => audio.unlock(), { capture: true });
 document.addEventListener("keydown", () => audio.unlock(), { capture: true });
 
 document.addEventListener("click", (event) => {
