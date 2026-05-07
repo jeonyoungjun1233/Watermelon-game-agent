@@ -320,6 +320,85 @@ button {
     inset 0 2px 0 rgba(255, 255, 255, 0.52);
 }
 
+.sound-gate {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(22px, 5vmin, 58px);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 224, 76, 0.24), transparent 32%),
+    repeating-linear-gradient(135deg, rgba(255, 79, 154, 0.16) 0 18px, rgba(71, 214, 255, 0.14) 18px 36px),
+    rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(4px);
+}
+
+.sound-gate[hidden] {
+  display: none;
+}
+
+.sound-card {
+  width: min(84%, 520px);
+  display: grid;
+  justify-items: center;
+  gap: clamp(10px, 2vmin, 18px);
+  padding: clamp(20px, 4vmin, 42px);
+  border: 3px solid #fff7a8;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 79, 154, 0.28), rgba(71, 214, 255, 0.22)),
+    rgba(8, 8, 10, 0.94);
+  box-shadow:
+    0 18px 54px rgba(0, 0, 0, 0.58),
+    0 0 48px rgba(255, 224, 76, 0.2);
+}
+
+.sound-card strong {
+  color: #fff7a8;
+  font-size: clamp(30px, 6vmin, 66px);
+  line-height: 1;
+  font-weight: 1000;
+  text-align: center;
+  text-shadow:
+    3px 3px 0 #ff4f9a,
+    -2px -2px 0 #47d6ff;
+}
+
+.sound-card span {
+  color: #ffffff;
+  font-size: clamp(20px, 3.2vmin, 34px);
+  font-weight: 1000;
+  letter-spacing: 0;
+}
+
+#soundStartButton {
+  width: min(100%, 360px);
+  min-height: clamp(54px, 8vmin, 92px);
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff7a8, #59f28b 45%, #47d6ff);
+  color: #101114;
+  font-size: clamp(24px, 4vmin, 44px);
+  font-weight: 1000;
+  cursor: pointer;
+  box-shadow:
+    0 12px 0 rgba(0, 0, 0, 0.34),
+    inset 0 2px 0 rgba(255, 255, 255, 0.56);
+}
+
+#soundStartButton:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 8px 0 rgba(0, 0, 0, 0.34),
+    inset 0 2px 0 rgba(255, 255, 255, 0.56);
+}
+
+#soundStartButton:disabled {
+  cursor: wait;
+  filter: grayscale(0.3) brightness(0.9);
+}
+
 .celebration-overlay {
   position: absolute;
   z-index: 5;

@@ -56,7 +56,7 @@ app.innerHTML = `
             (level) => `
               <div class="guide-item" style="--stage-color: ${level.color}">
                 <span class="guide-face">
-                  <img src="${level.image}" alt="${level.label}" />
+                  <img src="${level.image}" alt="${level.label}" loading="lazy" decoding="async" fetchpriority="low" />
                 </span>
                 <strong>${level.label}</strong>
               </div>
@@ -70,10 +70,18 @@ app.innerHTML = `
       <button id="restartButton" type="button">다시 시작</button>
     </footer>
 
+    <div id="soundGate" class="sound-gate">
+      <div class="sound-card" role="dialog" aria-modal="true" aria-label="소리 켜고 시작">
+        <strong>소리 켜고 시작</strong>
+        <span>BGM ON</span>
+        <button id="soundStartButton" type="button">START</button>
+      </div>
+    </div>
+
     <div id="celebrationOverlay" class="celebration-overlay" hidden>
       <div class="celebration-card" role="dialog" aria-modal="true" aria-label="100세 콩쌤 축하 영상">
         <div class="celebration-kicker">100세 콩쌤 등장</div>
-        <video id="celebrationVideo" src="${MEDIA.celebration}" playsinline controls preload="auto"></video>
+        <video id="celebrationVideo" playsinline controls preload="none"></video>
         <button id="celebrationCloseButton" type="button">게임으로 돌아가기</button>
       </div>
     </div>
@@ -85,6 +93,8 @@ const ctx = canvas.getContext("2d");
 const scoreValue = document.querySelector("#scoreValue");
 const restartButton = document.querySelector("#restartButton");
 const gameMessage = document.querySelector("#gameMessage");
+const soundGate = document.querySelector("#soundGate");
+const soundStartButton = document.querySelector("#soundStartButton");
 const celebrationOverlay = document.querySelector("#celebrationOverlay");
 const celebrationVideo = document.querySelector("#celebrationVideo");
 const celebrationCloseButton = document.querySelector("#celebrationCloseButton");
@@ -103,6 +113,7 @@ let score = 0;
 let canDrop = true;
 let isGameOver = false;
 let isCelebrating = false;
+let isSoundGateOpen = true;
 let dangerStartedAt = null;
 let lastResizeKey = "";
 let resizeTimer = 0;
@@ -118,91 +129,257 @@ for (const level of LEVELS) {
   image.addEventListener("load", () => {
     faceSprites.set(level.key, createCutoutSprite(image));
   });
-  image.src = level.image;
-  if (image.complete && image.naturalWidth > 0) {
-    faceSprites.set(level.key, createCutoutSprite(image));
-  }
+  scheduleFaceImageLoad(image, level.image, LEVELS.indexOf(level));
   images.set(level.key, image);
 }
 
+function scheduleFaceImageLoad(image, src, levelIndex) {
+  const load = () => {
+    if (!image.src) {
+      image.src = src;
+    }
+
+    if (image.complete && image.naturalWidth > 0) {
+      faceSprites.set(LEVELS[levelIndex].key, createCutoutSprite(image));
+    }
+  };
+
+  if (levelIndex <= MAX_SPAWN_LEVEL) {
+    load();
+    return;
+  }
+
+  const delay = 900 + (levelIndex - MAX_SPAWN_LEVEL) * 450;
+  window.setTimeout(() => {
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(load, { timeout: 1600 });
+    } else {
+      load();
+    }
+  }, delay);
+}
+
 function createAudioSystem() {
-  const bgm = document.createElement("video");
-  bgm.src = MEDIA.bgm;
-  bgm.loop = true;
-  bgm.preload = "auto";
-  bgm.playsInline = true;
-  bgm.controls = false;
-  bgm.muted = false;
-  bgm.volume = 0.2;
-  bgm.setAttribute("playsinline", "");
-  bgm.setAttribute("webkit-playsinline", "");
-  bgm.setAttribute("aria-hidden", "true");
-  bgm.style.position = "fixed";
-  bgm.style.width = "1px";
-  bgm.style.height = "1px";
-  bgm.style.opacity = "0";
-  bgm.style.pointerEvents = "none";
-  bgm.style.left = "-10px";
-  bgm.style.top = "-10px";
-  document.body.append(bgm);
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  const fallbackBgm = new Audio(MEDIA.bgm);
+  fallbackBgm.loop = true;
+  fallbackBgm.preload = "metadata";
+  fallbackBgm.volume = 0.22;
 
-  const old100 = new Audio(MEDIA.old100);
-  old100.preload = "auto";
-  old100.volume = 0.72;
+  const fallbackPools = {
+    merge: createFallbackPool(MEDIA.merge, 6, 0.55),
+    button: createFallbackPool(MEDIA.button, 4, 0.36),
+    old100: createFallbackPool(MEDIA.old100, 2, 0.82),
+  };
 
-  const mergePool = createPool(MEDIA.merge, 8, 0.5);
-  const buttonPool = createPool(MEDIA.button, 5, 0.35);
+  const fetchedAudio = new Map();
+  const decodedAudio = new Map();
+  const volumes = {
+    bgm: 0.22,
+    merge: 0.55,
+    button: 0.36,
+    old100: 0.82,
+  };
 
+  let audioContext = null;
+  let bgmGain = null;
+  let sfxGain = null;
+  let bgmSource = null;
   let unlocked = false;
-  let bgmTargetVolume = 0.2;
+  let bgmTargetVolume = volumes.bgm;
 
-  function createPool(src, count, volume) {
+  function createFallbackPool(src, count, volume) {
     return Array.from({ length: count }, () => {
       const clip = new Audio(src);
-      clip.preload = "auto";
+      clip.preload = "metadata";
       clip.volume = volume;
       return clip;
     });
   }
 
-  function playFromPool(pool) {
-    if (!unlocked) return;
+  function ensureContext() {
+    if (!AudioContextClass) {
+      return null;
+    }
+
+    if (!audioContext) {
+      audioContext = new AudioContextClass();
+      bgmGain = audioContext.createGain();
+      sfxGain = audioContext.createGain();
+      bgmGain.gain.value = bgmTargetVolume;
+      sfxGain.gain.value = 1;
+      bgmGain.connect(audioContext.destination);
+      sfxGain.connect(audioContext.destination);
+    }
+
+    return audioContext;
+  }
+
+  function fetchAudio(key) {
+    if (!fetchedAudio.has(key)) {
+      fetchedAudio.set(
+        key,
+        fetch(MEDIA[key], { cache: "force-cache" }).then((response) => {
+          if (!response.ok) {
+            throw new Error(`Audio load failed: ${key}`);
+          }
+
+          return response.arrayBuffer();
+        }),
+      );
+    }
+
+    return fetchedAudio.get(key).then((buffer) => buffer.slice(0));
+  }
+
+  function decodeAudio(key) {
+    const context = ensureContext();
+    if (!context) {
+      return Promise.reject(new Error("Web Audio is not available"));
+    }
+
+    if (!decodedAudio.has(key)) {
+      decodedAudio.set(key, fetchAudio(key).then((buffer) => context.decodeAudioData(buffer)));
+    }
+
+    return decodedAudio.get(key);
+  }
+
+  function playFallback(key) {
+    if (key === "bgm") {
+      fallbackBgm.volume = bgmTargetVolume;
+      fallbackBgm.play().catch(() => {});
+      return;
+    }
+
+    const pool = fallbackPools[key];
+    if (!pool) {
+      return;
+    }
+
     const clip = pool.find((item) => item.paused) || pool[0];
     clip.currentTime = 0;
     clip.play().catch(() => {});
   }
 
-  function unlock() {
-    if (unlocked) {
-      resumeBgm();
+  function startBgm() {
+    if (!unlocked || bgmSource) {
       return;
     }
 
-    unlocked = true;
-    resumeBgm();
+    decodeAudio("bgm")
+      .then((buffer) => {
+        const context = ensureContext();
+        if (!context || bgmSource) {
+          return;
+        }
 
-    Promise.allSettled(
-      [...mergePool, ...buttonPool, old100].map(async (clip) => {
-        const originalVolume = clip.volume;
-        clip.volume = 0;
-        await clip.play();
-        clip.pause();
-        clip.currentTime = 0;
-        clip.volume = originalVolume;
-      }),
-    );
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(bgmGain);
+        source.start(0);
+        bgmSource = source;
+      })
+      .catch(() => {
+        playFallback("bgm");
+      });
+  }
+
+  function unlock() {
+    if (unlocked) {
+      resumeBgm();
+      return Promise.resolve();
+    }
+
+    const context = ensureContext();
+    unlocked = true;
+
+    if (!context) {
+      playFallback("bgm");
+      return Promise.resolve();
+    }
+
+    const resumePromise = context ? context.resume().catch(() => {}) : Promise.resolve();
+    startBgm();
+    resumePromise.then(() => {
+      startBgm();
+      decodeAudio("merge").catch(() => {});
+      decodeAudio("button").catch(() => {});
+      decodeAudio("old100").catch(() => {});
+    });
+
+    return resumePromise;
   }
 
   function resumeBgm() {
-    if (!unlocked) return;
-    bgm.volume = bgmTargetVolume;
-    bgm.play().catch(() => {});
+    if (!unlocked) {
+      return;
+    }
+
+    const context = ensureContext();
+    if (context?.state === "suspended") {
+      context.resume().catch(() => {});
+    }
+
+    if (bgmGain) {
+      bgmGain.gain.setTargetAtTime(bgmTargetVolume, context.currentTime, 0.05);
+    }
+
+    if (fallbackBgm.paused === false) {
+      fallbackBgm.volume = bgmTargetVolume;
+    }
+
+    startBgm();
   }
 
   function setBgmVolume(volume) {
     bgmTargetVolume = volume;
-    bgm.volume = volume;
+
+    if (audioContext && bgmGain) {
+      bgmGain.gain.setTargetAtTime(volume, audioContext.currentTime, 0.08);
+    }
+
+    fallbackBgm.volume = volume;
   }
+
+  function playEffect(key) {
+    if (!unlocked) {
+      return;
+    }
+
+    const context = ensureContext();
+    if (context?.state === "suspended") {
+      context.resume().catch(() => {});
+    }
+
+    decodeAudio(key)
+      .then((buffer) => {
+        const activeContext = ensureContext();
+        if (!activeContext) {
+          playFallback(key);
+          return;
+        }
+
+        const source = activeContext.createBufferSource();
+        const gain = activeContext.createGain();
+        gain.gain.value = volumes[key] ?? 0.5;
+        source.buffer = buffer;
+        source.connect(gain);
+        gain.connect(sfxGain);
+        source.start(0);
+      })
+      .catch(() => {
+        playFallback(key);
+      });
+  }
+
+  window.setTimeout(() => {
+    fetchAudio("bgm").catch(() => {});
+    fetchAudio("merge").catch(() => {});
+    fetchAudio("button").catch(() => {});
+    fetchAudio("old100").catch(() => {});
+  }, 250);
 
   return {
     unlock,
@@ -211,19 +388,17 @@ function createAudioSystem() {
       setBgmVolume(0.08);
     },
     restoreBgm() {
-      setBgmVolume(0.2);
+      setBgmVolume(volumes.bgm);
       resumeBgm();
     },
     playMerge() {
-      playFromPool(mergePool);
+      playEffect("merge");
     },
     playButton() {
-      playFromPool(buttonPool);
+      playEffect("button");
     },
     playOld100() {
-      if (!unlocked) return;
-      old100.currentTime = 0;
-      old100.play().catch(() => {});
+      playEffect("old100");
     },
   };
 }
@@ -426,6 +601,10 @@ function showCelebration() {
   canDrop = false;
   audio.duckBgm();
   celebrationOverlay.hidden = false;
+  if (!celebrationVideo.src) {
+    celebrationVideo.src = MEDIA.celebration;
+    celebrationVideo.load();
+  }
   celebrationVideo.currentTime = 0;
   celebrationVideo.volume = 0.64;
   celebrationVideo.play().catch(() => {});
@@ -443,7 +622,7 @@ function hideCelebration() {
 }
 
 function dropPiece() {
-  if (!canDrop || isGameOver || isCelebrating) return;
+  if (isSoundGateOpen || !canDrop || isGameOver || isCelebrating) return;
 
   const levelIndex = currentLevel;
   const body = createPiece(levelIndex, clampDropX(dropX, levelIndex), dropYFor(levelIndex));
@@ -808,6 +987,26 @@ function draw(now) {
   drawEffects(now);
   requestAnimationFrame(draw);
 }
+
+function startSoundSession() {
+  if (!isSoundGateOpen || soundStartButton.disabled) {
+    return;
+  }
+
+  soundStartButton.disabled = true;
+  audio.unlock().finally(() => {
+    isSoundGateOpen = false;
+    soundGate.hidden = true;
+    soundStartButton.disabled = false;
+    audio.playButton();
+  });
+}
+
+soundStartButton.addEventListener("click", startSoundSession);
+soundStartButton.addEventListener("touchend", (event) => {
+  event.preventDefault();
+  startSoundSession();
+});
 
 document.addEventListener("pointerdown", () => audio.unlock(), { capture: true });
 document.addEventListener("touchstart", () => audio.unlock(), { capture: true, passive: true });
