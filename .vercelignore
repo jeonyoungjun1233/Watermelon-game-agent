@@ -1,0 +1,7 @@
+.devserver/
+dist/
+node_modules/
+multi-agent-project/
+week*
+Week*
+npm-debug.log*
