@@ -29,3 +29,5 @@ create policy "Users can update own ranking"
   on public.rankings for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+notify pgrst, 'reload schema';

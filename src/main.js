@@ -148,6 +148,8 @@ const SETTINGS_KEY = "kongSettings";
 const NICKNAME_KEY = "kongNickname";
 const GUEST_BEST_KEY = "guestBestScore";
 const GUEST_LAST_KEY = "guestLastScore";
+const RANKINGS_TABLE = "rankings";
+const RANKING_SETUP_MESSAGE = "Supabase SQL Editor에서 supabase/ranking.sql을 실행하면 온라인 랭킹이 열립니다.";
 
 const SUPABASE_URL = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL || "");
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -1805,8 +1807,8 @@ async function handleLogout() {
 async function fetchOwnRanking() {
   if (!supabase || !currentUser) return null;
 
-  const { data, error } = await supabase.from("rankings").select("*").eq("user_id", currentUser.id).maybeSingle();
-  if (error) throw error;
+  const { data, error } = await supabase.from(RANKINGS_TABLE).select("*").eq("user_id", currentUser.id).maybeSingle();
+  if (error) throw normalizeRankingError(error);
   return data;
 }
 
@@ -1822,7 +1824,7 @@ async function submitMemberScore(finalScore) {
   if (existing) {
     bestScore = Math.max(Number(existing.best_score || 0), finalScore);
     const { error } = await supabase
-      .from("rankings")
+      .from(RANKINGS_TABLE)
       .update({
         nickname,
         best_score: bestScore,
@@ -1831,9 +1833,9 @@ async function submitMemberScore(finalScore) {
       })
       .eq("user_id", currentUser.id);
 
-    if (error) throw error;
+    if (error) throw normalizeRankingError(error);
   } else {
-    const { error } = await supabase.from("rankings").insert({
+    const { error } = await supabase.from(RANKINGS_TABLE).insert({
       user_id: currentUser.id,
       nickname,
       best_score: finalScore,
@@ -1841,7 +1843,7 @@ async function submitMemberScore(finalScore) {
       updated_at: updatedAt,
     });
 
-    if (error) throw error;
+    if (error) throw normalizeRankingError(error);
   }
 
   setMemberBestScore(bestScore);
@@ -1854,11 +1856,11 @@ async function fetchRankForScore(bestScore) {
   if (!supabase) return null;
 
   const { count, error } = await supabase
-    .from("rankings")
+    .from(RANKINGS_TABLE)
     .select("id", { count: "exact", head: true })
     .gt("best_score", bestScore);
 
-  if (error) throw error;
+  if (error) throw normalizeRankingError(error);
   return Number(count || 0) + 1;
 }
 
@@ -1882,19 +1884,30 @@ async function showRanking() {
 
   try {
     const { data, error } = await supabase
-      .from("rankings")
+      .from(RANKINGS_TABLE)
       .select("nickname,best_score,updated_at")
       .order("best_score", { ascending: false })
       .order("updated_at", { ascending: true })
       .limit(100);
 
-    if (error) throw error;
+    if (error) throw normalizeRankingError(error);
     renderRankingRows(data || []);
     await renderMyRank();
   } catch (error) {
-    rankingRows.innerHTML = `<tr><td colspan="3">랭킹을 불러오지 못했어요.</td></tr>`;
+    rankingRows.innerHTML = `<tr><td colspan="3">${isMissingRankingTableError(error) ? "랭킹 테이블 생성이 필요해요." : "랭킹을 불러오지 못했어요."}</td></tr>`;
     rankingStatus.textContent = error.message;
+    myRankBox.textContent = isMissingRankingTableError(error) ? "Supabase SQL 실행 대기 중" : "랭킹 연결 확인 중";
   }
+}
+
+function normalizeRankingError(error) {
+  if (isMissingRankingTableError(error)) return new Error(RANKING_SETUP_MESSAGE);
+  return error;
+}
+
+function isMissingRankingTableError(error) {
+  const message = String(error?.message || error || "");
+  return error?.code === "PGRST205" || /schema cache|public\.rankings|could not find|does not exist/i.test(message);
 }
 
 function renderRankingRows(rows) {
