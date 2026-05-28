@@ -125,14 +125,14 @@ button:disabled {
 .screen {
   display: grid;
   align-content: center;
-  gap: clamp(16px, 3vmin, 28px);
-  padding: clamp(20px, 4.5vmin, 42px);
+  gap: clamp(12px, 2.4vmin, 24px);
+  padding: clamp(16px, 3.6vmin, 34px);
 }
 
 .home-screen {
-  grid-template-rows: auto auto minmax(96px, 1fr) auto auto auto;
+  grid-template-rows: auto auto minmax(108px, 0.9fr) auto auto auto;
   align-content: stretch;
-  gap: clamp(10px, 2vmin, 18px);
+  gap: clamp(8px, 1.55vmin, 14px);
   overflow: hidden;
   isolation: isolate;
   background: #05070b;
@@ -169,7 +169,7 @@ button:disabled {
 
 .home-copy {
   align-self: end;
-  padding: clamp(12px, 2.4vmin, 20px);
+  padding: clamp(10px, 1.9vmin, 18px);
   border: 1px solid rgba(90, 255, 220, 0.32);
   border-radius: 8px;
   background:
@@ -209,7 +209,7 @@ h2 {
 }
 
 h1 {
-  font-size: clamp(42px, 10vmin, 92px);
+  font-size: clamp(36px, 8.2vmin, 76px);
 }
 
 h2 {
@@ -217,7 +217,7 @@ h2 {
 }
 
 .home-screen h1 {
-  font-size: clamp(42px, 10.2vmin, 84px);
+  font-size: clamp(36px, 8.5vmin, 64px);
   color: #ecfff9;
   text-shadow:
     0 0 12px rgba(0, 255, 205, 0.88),
@@ -237,10 +237,10 @@ h2 {
 }
 
 .home-subtitle {
-  margin-top: 10px;
+  margin-top: 8px;
   max-width: 24rem;
   color: rgba(223, 255, 247, 0.94);
-  font-size: clamp(15px, 2.5vmin, 23px);
+  font-size: clamp(14px, 2.05vmin, 19px);
   line-height: 1.32;
   font-weight: 1000;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.72);
@@ -250,11 +250,12 @@ h2 {
   position: relative;
   z-index: 2;
   min-height: 0;
+  overflow: hidden;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: end;
-  gap: clamp(10px, 2.6vmin, 20px);
-  padding: 0 clamp(4px, 2vmin, 16px);
+  gap: clamp(12px, 3.2vmin, 28px);
+  padding: 0 clamp(12px, 3vmin, 24px);
   pointer-events: none;
 }
 
@@ -262,7 +263,7 @@ h2 {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: clamp(132px, 28svh, 238px);
+  height: min(100%, clamp(112px, 18.5svh, 170px));
   min-width: 0;
   object-fit: contain;
   object-position: center bottom;
@@ -295,6 +296,8 @@ h2 {
 }
 
 .home-actions {
+  position: relative;
+  z-index: 3;
   padding: clamp(10px, 2vmin, 14px);
   border: 1px solid rgba(101, 255, 226, 0.32);
   border-radius: 8px;
@@ -312,12 +315,12 @@ h2 {
 .modal-actions button,
 #restartButton {
   width: 100%;
-  padding: 0 16px;
-  font-size: clamp(16px, 2.6vmin, 24px);
+  padding: 0 clamp(12px, 2vmin, 16px);
+  font-size: clamp(15px, 2.15vmin, 20px);
 }
 
 .home-actions button {
-  min-height: clamp(48px, 7.2vmin, 64px);
+  min-height: clamp(44px, 6.2vmin, 56px);
   border: 1px solid rgba(116, 255, 228, 0.44);
   background:
     linear-gradient(180deg, rgba(19, 31, 42, 0.88), rgba(7, 13, 22, 0.92)),
@@ -353,7 +356,7 @@ h2 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  padding: clamp(8px, 1.7vmin, 12px);
+  padding: clamp(7px, 1.45vmin, 10px);
   border: 1px solid rgba(120, 255, 226, 0.34);
   border-radius: 8px;
   background: rgba(3, 10, 16, 0.68);
@@ -394,7 +397,7 @@ h2 {
   border-radius: 8px;
   background: rgba(20, 13, 4, 0.6);
   color: #ffe88a;
-  font-size: clamp(11px, 1.8vmin, 15px);
+  font-size: clamp(11px, 1.55vmin, 14px);
   line-height: 1.25;
   font-weight: 1000;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
@@ -403,7 +406,7 @@ h2 {
 .status-line {
   min-height: 1.35em;
   color: rgba(255, 255, 255, 0.82);
-  font-size: clamp(12px, 1.9vmin, 16px);
+  font-size: clamp(11px, 1.6vmin, 14px);
   line-height: 1.35;
   font-weight: 800;
 }
@@ -415,8 +418,8 @@ h2 {
 .game-shell {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: clamp(8px, 1.3vmin, 14px);
-  padding: clamp(10px, 2.1vmin, 20px);
+  gap: clamp(7px, 1.15vmin, 12px);
+  padding: clamp(9px, 1.75vmin, 16px);
 }
 
 .top-bar {
@@ -428,7 +431,7 @@ h2 {
 }
 
 .title-block h1 {
-  font-size: clamp(28px, 6.2vmin, 58px);
+  font-size: clamp(26px, 5.2vmin, 46px);
 }
 
 .title-block p {
@@ -460,7 +463,7 @@ h2 {
   display: block;
   margin: 2px 0;
   color: #ffffff;
-  font-size: clamp(24px, 5.1vmin, 48px);
+  font-size: clamp(22px, 4.2vmin, 40px);
   line-height: 0.94;
   font-weight: 1000;
 }
@@ -468,7 +471,7 @@ h2 {
 .game-layout {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(112px, 26%, 184px);
+  grid-template-columns: minmax(0, 1fr) clamp(148px, 29%, 210px);
   gap: clamp(8px, 1.35vmin, 14px);
 }
 
@@ -547,10 +550,10 @@ h2 {
 .guide-item {
   min-height: 0;
   display: grid;
-  grid-template-columns: clamp(36px, 5.7vmin, 52px) minmax(0, 1fr) auto;
+  grid-template-columns: clamp(38px, 5.4vmin, 52px) minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
+  gap: 7px;
+  padding: 4px 7px;
   border: 1px solid color-mix(in srgb, var(--stage-color) 72%, transparent);
   border-radius: 8px;
   background:
@@ -565,7 +568,7 @@ h2 {
 
 .guide-face {
   width: 100%;
-  height: clamp(34px, 5.6vmin, 52px);
+  height: clamp(34px, 5.3vmin, 50px);
   display: block;
   min-width: 0;
   min-height: 0;
@@ -582,22 +585,28 @@ h2 {
     drop-shadow(0 0 8px color-mix(in srgb, var(--stage-color) 46%, transparent));
 }
 
+.guide-copy {
+  min-width: 0;
+  max-width: 100%;
+  display: grid;
+  gap: 2px;
+}
+
 .guide-item strong {
   min-width: 0;
   max-width: 100%;
   color: #ffffff;
-  font-size: clamp(9px, 1.35vmin, 13px);
-  line-height: 1.08;
+  font-size: clamp(9px, 1.24vmin, 12px);
+  line-height: 1.12;
   font-weight: 1000;
   white-space: normal;
   word-break: keep-all;
   overflow: hidden;
-  text-wrap: balance;
 }
 
 .guide-item small {
   color: #fff5a7;
-  font-size: clamp(8px, 1.18vmin, 11px);
+  font-size: clamp(8px, 1.08vmin, 10px);
   line-height: 1;
   font-weight: 1000;
   white-space: nowrap;
@@ -605,7 +614,7 @@ h2 {
 
 .bottom-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(90px, 34%);
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 32%);
   gap: 10px;
 }
 
@@ -815,7 +824,7 @@ h2 {
   }
 
   .home-screen h1 {
-    font-size: clamp(42px, 14.2vw, 58px);
+    font-size: clamp(36px, 12.2vw, 52px);
   }
 
   .home-subtitle {
@@ -823,7 +832,7 @@ h2 {
   }
 
   .home-face-strip img {
-    height: min(23svh, 170px);
+    height: min(100%, 148px);
   }
 
   .home-lab-status {
@@ -860,7 +869,7 @@ h2 {
   }
 
   .game-layout {
-    grid-template-columns: minmax(0, 1fr) 94px;
+    grid-template-columns: minmax(0, 1fr) 116px;
     gap: 7px;
   }
 
@@ -869,28 +878,27 @@ h2 {
   }
 
   .guide-item {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(21px, 1fr) auto auto;
-    justify-items: center;
+    grid-template-columns: 34px minmax(0, 1fr);
+    justify-items: stretch;
     align-items: center;
-    gap: 1px;
-    padding: 3px 2px 2px;
-    text-align: center;
+    gap: 4px;
+    padding: 3px 4px;
+    text-align: left;
   }
 
   .guide-face {
-    width: min(100%, 34px);
+    width: 34px;
     height: clamp(21px, 5.3vw, 32px);
   }
 
   .guide-item strong {
-    font-size: 7.8px;
+    font-size: 7.4px;
     line-height: 1.04;
-    max-height: 2.12em;
+    max-height: 2.18em;
   }
 
   .guide-item small {
-    font-size: 7.5px;
+    font-size: 7.2px;
   }
 
   .bottom-bar {
@@ -904,5 +912,60 @@ h2 {
 
   .next-card img {
     height: 48px;
+  }
+}
+
+@media (max-height: 820px) and (min-width: 461px) {
+  #app {
+    padding: 8px;
+  }
+
+  .screen {
+    padding: 16px;
+  }
+
+  .home-screen {
+    gap: 7px;
+    grid-template-rows: auto auto minmax(92px, 0.85fr) auto auto auto;
+  }
+
+  .home-copy {
+    padding: 10px 12px;
+  }
+
+  .home-screen h1 {
+    font-size: clamp(34px, 7.2vmin, 56px);
+  }
+
+  .home-subtitle {
+    margin-top: 6px;
+    font-size: 14px;
+  }
+
+  .home-face-strip img {
+    height: min(100%, 140px);
+  }
+
+  .home-actions {
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .home-actions button {
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .home-warning,
+  .status-line {
+    font-size: 11px;
+  }
+
+  .title-block h1 {
+    font-size: clamp(24px, 4.6vmin, 40px);
+  }
+
+  .game-layout {
+    grid-template-columns: minmax(0, 1fr) clamp(144px, 28%, 188px);
   }
 }

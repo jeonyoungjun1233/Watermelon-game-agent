@@ -149,7 +149,7 @@ const NICKNAME_KEY = "kongNickname";
 const GUEST_BEST_KEY = "guestBestScore";
 const GUEST_LAST_KEY = "guestLastScore";
 
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+const SUPABASE_URL = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL || "");
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const HAS_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const supabase = HAS_SUPABASE
@@ -242,8 +242,10 @@ app.innerHTML = `
                   <span class="guide-face">
                     <img src="${stage.image}" data-fallback="${stage.fallbackImage || ""}" alt="${stage.name}" loading="lazy" decoding="async" />
                   </span>
-                  <strong title="${stage.name}">${stage.name}</strong>
-                  <small>+${stage.score}점</small>
+                  <span class="guide-copy">
+                    <strong title="${stage.name}">${stage.name}</strong>
+                    <small>+${stage.score}점</small>
+                  </span>
                 </div>
               `,
             ).join("")}
@@ -756,6 +758,18 @@ function updateSetting(key, value) {
 function safeVibrate(pattern) {
   if (!userSettings.vibration) return;
   if (typeof navigator.vibrate === "function") navigator.vibrate(pattern);
+}
+
+function normalizeSupabaseUrl(value) {
+  const rawUrl = String(value || "").trim();
+  if (!rawUrl) return "";
+
+  try {
+    const parsed = new URL(rawUrl);
+    return parsed.origin.replace(/\/$/, "");
+  } catch {
+    return rawUrl.replace(/\/rest\/v1\/?$/i, "").replace(/\/$/, "");
+  }
 }
 
 function initializeAuth() {
