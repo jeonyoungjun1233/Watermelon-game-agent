@@ -131,9 +131,9 @@ const KONG_STAGES = [
     image: `${KONG_ASSET_BASE}/final-boss.png`,
     radius: 124,
     score: 110,
-    color: "#a65cff",
-    accentColor: "#ff3d55",
-    glowColor: "#c04dff",
+    color: "#15101f",
+    accentColor: "#ff2e43",
+    glowColor: "#b14cff",
     drawScale: 2.02,
   },
 ];
@@ -144,6 +144,16 @@ const FINAL_BOSS_BONUS = 150;
 const MAX_SPAWN_LEVEL = 2;
 const DROP_COOLDOWN = 520;
 const DANGER_DELAY = 2000;
+const EXPERIMENT_MAX = 100;
+const EXPERIMENT_DURATION = 10000;
+const KONG_LINES = [
+  "이건 과학입니다.",
+  "콩쌤이 진화했습니다.",
+  "절대 따라하지 마세요.",
+  "상상력에 코딩을 더하면 무한한 가능성이 실현된다.",
+  "콩멘.",
+  "도망쳐.",
+];
 const SETTINGS_KEY = "kongSettings";
 const NICKNAME_KEY = "kongNickname";
 const GUEST_BEST_KEY = "guestBestScore";
@@ -190,24 +200,27 @@ app.innerHTML = `
 
     <section id="homeScreen" class="screen home-screen">
       <div class="home-copy">
-        <p class="kicker">KONG LAB CONTROL</p>
-        <h1 class="stacked-title"><span>콩쌤의</span><span>수박게임</span></h1>
-        <p class="home-subtitle">괴짜 개발자의 금지된 진화 실험</p>
+        <p class="kicker">KONG LAB / 괴짜 개발자 실험실</p>
+        <h1 class="stacked-title"><span>KONG LAB</span><span>수박 실험</span></h1>
+        <p class="home-subtitle">콩쌤 진화 샘플을 합성하는 금지된 연구</p>
       </div>
       <div class="home-lab-status" aria-label="실험 상태">
         <div><span>병맛 농도</span><strong>98%</strong></div>
         <div><span>실험 안정도</span><strong>23%</strong></div>
-        <div><span>최종보스 위험도</span><strong>매우 높음</strong></div>
+        <div><span>최종보스 위험도</span><strong>위험</strong></div>
       </div>
       <div class="home-face-strip" aria-hidden="true">
-        <img src="${KONG_STAGES[4].image}" alt="" decoding="async" />
-        <img src="${KONG_STAGES[5].image}" alt="" decoding="async" />
-        <img src="${KONG_STAGES[7].image}" alt="" decoding="async" />
+        ${[KONG_STAGES[4], KONG_STAGES[5], KONG_STAGES[9]]
+          .map(
+            (stage) =>
+              `<img src="${stage.image}" alt="" decoding="async" draggable="false" style="--preview-glow: ${stage.glowColor}" />`,
+          )
+          .join("")}
       </div>
       <div class="home-actions">
-        <button id="guestStartButton" class="primary-action" type="button">🧪 비회원으로 실험 시작</button>
-        <button id="loginStartButton" type="button">⚡ 로그인하고 연구원 등록</button>
-        <button id="rankingOpenButton" type="button">📊 연구소 랭킹 보기</button>
+        <button id="guestStartButton" class="primary-action" type="button">KONG LAB 실험 시작</button>
+        <button id="loginStartButton" type="button">연구원 로그인</button>
+        <button id="rankingOpenButton" type="button">실험 랭킹 보기</button>
         <button id="logoutHomeButton" type="button" hidden>로그아웃</button>
       </div>
       <p class="home-warning">※ 경고: 최종보스 콩쌤 생성 시 책임지지 않습니다.</p>
@@ -217,15 +230,29 @@ app.innerHTML = `
     <section id="gameScreen" class="game-shell" hidden>
       <header class="top-bar">
         <div class="title-block">
-          <h1 class="stacked-title"><span>콩쌤의</span><span>수박게임</span></h1>
-          <p id="playerModeLabel">비회원 플레이</p>
+          <h1 class="stacked-title"><span>KONG LAB</span><span>콩쌤 실험실</span></h1>
+          <p id="playerModeLabel">비회원 실험원</p>
         </div>
         <div class="score-card" aria-live="polite">
-          <span>이번 점수</span>
+          <span>실험 점수</span>
           <strong id="scoreValue">0</strong>
-          <small id="bestValue">최고 0</small>
+          <small id="bestValue">LAB BEST 0</small>
         </div>
       </header>
+
+      <div class="experiment-rack" aria-live="polite">
+        <div class="experiment-label">
+          <span>KONG LAB EXPERIMENT</span>
+          <strong id="experimentModeLabel">실험 게이지 안정</strong>
+        </div>
+        <div class="experiment-meter" aria-label="실험 게이지">
+          <span id="experimentFill"></span>
+        </div>
+        <div class="experiment-readout">
+          <strong id="experimentValue">0%</strong>
+          <small id="experimentTimer">READY</small>
+        </div>
+      </div>
 
       <main class="game-layout">
         <section class="board-panel" aria-label="콩쌤 수박게임 보드">
@@ -236,13 +263,13 @@ app.innerHTML = `
         </section>
 
         <aside class="guide-panel" aria-label="진화 단계">
-          <div class="guide-title">진화</div>
+          <div class="guide-title">진화 샘플</div>
           <div class="guide-list">
             ${KONG_STAGES.map(
               (stage) => `
                 <div class="guide-item" style="--stage-color: ${stage.color}; --stage-accent: ${stage.accentColor}">
                   <span class="guide-face">
-                    <img src="${stage.image}" data-fallback="${stage.fallbackImage || ""}" alt="${stage.name}" loading="lazy" decoding="async" />
+                    <img src="${stage.image}" data-fallback="${stage.fallbackImage || ""}" alt="${stage.name}" loading="lazy" decoding="async" draggable="false" />
                   </span>
                   <span class="guide-copy">
                     <strong title="${stage.name}">${stage.name}</strong>
@@ -257,27 +284,27 @@ app.innerHTML = `
 
       <footer class="bottom-bar">
         <div class="next-card">
-          <span>다음</span>
-          <img id="nextFace" alt="" decoding="async" />
+          <span>NEXT</span>
+          <img id="nextFace" alt="" decoding="async" draggable="false" />
           <strong id="nextStageName">콩쌤 아기</strong>
         </div>
-        <button id="restartButton" type="button">처음부터</button>
+        <button id="restartButton" type="button">실험 재시작</button>
       </footer>
     </section>
 
     <section id="rankingScreen" class="screen ranking-screen" hidden>
       <div class="screen-heading">
-        <p class="kicker">온라인 TOP 100</p>
-        <h2>랭킹 보기</h2>
+        <p class="kicker">KONG LAB ONLINE TOP 100</p>
+        <h2>실험 랭킹</h2>
       </div>
-      <div id="myRankBox" class="my-rank-box">로그인하면 내 순위를 확인할 수 있어요.</div>
+      <div id="myRankBox" class="my-rank-box">연구원 로그인 후 내 실험 순위를 확인할 수 있어요.</div>
       <div class="ranking-table-wrap">
         <table class="ranking-table">
           <thead>
             <tr>
               <th>순위</th>
               <th>닉네임</th>
-              <th>최고점수</th>
+              <th>LAB BEST</th>
             </tr>
           </thead>
           <tbody id="rankingRows"></tbody>
@@ -286,13 +313,13 @@ app.innerHTML = `
       <p id="rankingStatus" class="status-line" aria-live="polite"></p>
       <div class="row-actions">
         <button id="rankingRefreshButton" type="button">새로고침</button>
-        <button id="rankingBackButton" type="button">홈으로</button>
+        <button id="rankingBackButton" type="button">실험실 홈</button>
       </div>
     </section>
 
     <div id="settingsPanel" class="modal-overlay" hidden>
       <section class="modal-panel settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-        <h2 id="settingsTitle">설정</h2>
+        <h2 id="settingsTitle">LAB 설정</h2>
         <label class="toggle-row">
           <span>음악</span>
           <input id="musicToggle" type="checkbox" />
@@ -306,16 +333,16 @@ app.innerHTML = `
           <input id="vibrationToggle" type="checkbox" />
         </label>
         <div class="modal-actions">
-          <button id="resumeButton" class="primary-action" type="button">게임 재개</button>
-          <button id="settingsRestartButton" type="button">처음부터 다시하기</button>
-          <button id="settingsHomeButton" type="button">홈으로 나가기</button>
+          <button id="resumeButton" class="primary-action" type="button">실험 재개</button>
+          <button id="settingsRestartButton" type="button">실험 재시작</button>
+          <button id="settingsHomeButton" type="button">실험실로 나가기</button>
         </div>
       </section>
     </div>
 
     <div id="authPanel" class="modal-overlay" hidden>
       <section class="modal-panel auth-panel" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-        <h2 id="authTitle">랭킹 도전 로그인</h2>
+        <h2 id="authTitle">연구원 로그인</h2>
         <label class="input-row">
           <span>닉네임</span>
           <input id="nicknameInput" maxlength="18" autocomplete="nickname" placeholder="콩쌤팬" />
@@ -341,30 +368,36 @@ app.innerHTML = `
 
     <div id="gameOverOverlay" class="modal-overlay" hidden>
       <section class="modal-panel game-over-panel" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle">
-        <h2 id="gameOverTitle">게임 오버</h2>
+        <h2 id="gameOverTitle">실험 종료</h2>
         <div class="score-summary">
-          <p id="gameOverScore">이번 점수: 0점</p>
-          <p id="gameOverBest">내 최고점수: 0점</p>
+          <p id="gameOverScore">실험 점수: 0점</p>
+          <p id="gameOverBest">LAB BEST: 0점</p>
         </div>
         <p id="gameOverNotice" class="status-line"></p>
         <p id="rankingSubmitStatus" class="status-line" aria-live="polite"></p>
         <div class="modal-actions">
-          <button id="gameOverRestartButton" class="primary-action" type="button">다시 하기</button>
-          <button id="gameOverRankingButton" type="button">랭킹 보기</button>
-          <button id="gameOverHomeButton" type="button">홈으로</button>
+          <button id="gameOverRestartButton" class="primary-action" type="button">실험 재시작</button>
+          <button id="gameOverRankingButton" type="button">실험 랭킹</button>
+          <button id="gameOverHomeButton" type="button">실험실 홈</button>
         </div>
       </section>
     </div>
   </div>
 `;
 
+const gameFrame = document.querySelector("#gameFrame");
 const homeScreen = document.querySelector("#homeScreen");
 const gameScreen = document.querySelector("#gameScreen");
 const rankingScreen = document.querySelector("#rankingScreen");
+const boardPanel = document.querySelector(".board-panel");
 const canvas = document.querySelector("#gameCanvas");
 const ctx = canvas.getContext("2d");
 const scoreValue = document.querySelector("#scoreValue");
 const bestValue = document.querySelector("#bestValue");
+const experimentFill = document.querySelector("#experimentFill");
+const experimentValue = document.querySelector("#experimentValue");
+const experimentModeLabel = document.querySelector("#experimentModeLabel");
+const experimentTimer = document.querySelector("#experimentTimer");
 const playerModeLabel = document.querySelector("#playerModeLabel");
 const restartButton = document.querySelector("#restartButton");
 const settingsButton = document.querySelector("#settingsButton");
@@ -434,6 +467,9 @@ let shakeStartedAt = 0;
 let shakeUntil = 0;
 let shakeIntensity = 0;
 let shakeDuration = 1;
+let experimentGauge = 0;
+let isExperimentOverdrive = false;
+let experimentOverdriveUntil = 0;
 
 window.KONG_STAGES = KONG_STAGES;
 window.KONG_SCORE_TABLE = SCORE_TABLE;
@@ -455,6 +491,7 @@ for (const stage of KONG_STAGES) {
 }
 
 bindGuideImageFallbacks();
+bindInteractionGuards();
 syncSettingsControls();
 initializeAuth();
 showHome();
@@ -486,6 +523,32 @@ function bindGuideImageFallbacks() {
       if (fallback && image.src !== fallback) image.src = fallback;
     });
   });
+}
+
+function bindInteractionGuards() {
+  const interactiveSelector = "input, textarea, select, button, label, .modal-panel, .ranking-table-wrap";
+
+  gameFrame.querySelectorAll("img").forEach((image) => {
+    image.draggable = false;
+  });
+
+  boardPanel.addEventListener("contextmenu", preventGameInteraction);
+  boardPanel.addEventListener("selectstart", preventGameInteraction);
+  boardPanel.addEventListener("dragstart", preventGameInteraction);
+
+  gameFrame.addEventListener("dragstart", (event) => {
+    if (event.target instanceof HTMLImageElement) event.preventDefault();
+  });
+
+  gameFrame.addEventListener("selectstart", (event) => {
+    const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+    if (target?.closest(interactiveSelector)) return;
+    event.preventDefault();
+  });
+}
+
+function preventGameInteraction(event) {
+  event.preventDefault();
 }
 
 function createAudioSystem(getSettings) {
@@ -830,7 +893,7 @@ function renderAuthState(message = "") {
   if (!HAS_SUPABASE) {
     homeStatus.textContent = message || "Supabase 환경변수 설정 전이라 비회원 플레이만 가능합니다.";
     authStatus.textContent = "VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY를 설정해주세요.";
-    loginStartButton.textContent = "⚡ 로그인하고 연구원 등록";
+    loginStartButton.textContent = "연구원 로그인";
     return;
   }
 
@@ -838,13 +901,13 @@ function renderAuthState(message = "") {
     const signedInMessage = message || `${nickname}님 로그인 중입니다.`;
     homeStatus.textContent = signedInMessage;
     authStatus.textContent = signedInMessage;
-    loginStartButton.textContent = "⚡ 연구원으로 실험 시작";
+    loginStartButton.textContent = "연구원으로 실험 시작";
     return;
   }
 
   homeStatus.textContent = message;
   authStatus.textContent = message;
-  loginStartButton.textContent = "⚡ 로그인하고 연구원 등록";
+  loginStartButton.textContent = "연구원 로그인";
 }
 
 function randomSpawnLevel() {
@@ -907,7 +970,7 @@ function startGame(mode) {
   settingsButton.hidden = false;
   authPanel.hidden = true;
   gameOverOverlay.hidden = true;
-  playerModeLabel.textContent = mode === "guest" ? "비회원 플레이" : `${getNickname()}님 랭킹 도전`;
+  playerModeLabel.textContent = mode === "guest" ? "비회원 실험원" : `${getNickname()} 연구원 실험 중`;
   audio.unlock();
   window.requestAnimationFrame(() => {
     resetGame();
@@ -927,6 +990,7 @@ function stopGame() {
 
   pieces.clear();
   effects.length = 0;
+  deactivateExperimentOverdrive(false);
 }
 
 function resetGame() {
@@ -954,6 +1018,8 @@ function resetGame() {
   shakeUntil = 0;
   shakeStartedAt = 0;
   shakeDuration = 1;
+  experimentGauge = 0;
+  deactivateExperimentOverdrive(false);
   dropX = clampDropX(boardWidth * 0.5);
   scoreValue.textContent = "0";
   gameMessage.hidden = true;
@@ -961,6 +1027,7 @@ function resetGame() {
   settingsPanel.hidden = true;
   updateBestDisplay();
   updateNextPreview();
+  updateExperimentUI(performance.now());
 
   addBoundaries();
   bindCollisionEvents();
@@ -1071,14 +1138,19 @@ function mergePieces(first, second) {
   World.remove(engine.world, [first, second]);
 
   const merged = createPiece(nextLevel, x, y);
+  const now = performance.now();
+  merged.plugin.popStartedAt = now;
+  merged.plugin.popDuration = 300 + nextStage.id * 22;
+  merged.plugin.popPower = 0.16 + nextLevel * 0.018 + (isExperimentOverdrive ? 0.08 : 0);
   Body.setVelocity(merged, velocity);
   Body.setAngularVelocity(merged, (first.angularVelocity + second.angularVelocity) * 0.2);
   World.add(engine.world, merged);
 
-  addScore(nextStage.score);
+  const gainedPoints = addScore(nextStage.score, true);
+  addExperimentCharge(nextLevel, x, y);
   audio.playMerge();
-  safeVibrate(24);
-  triggerStageEffects(nextLevel, x, y);
+  safeVibrate(nextLevel >= 7 ? [28, 24, 34] : 22 + nextLevel * 3);
+  triggerStageEffects(nextLevel, x, y, gainedPoints);
 }
 
 function clashFinalBoss(first, second) {
@@ -1112,14 +1184,16 @@ function clashFinalBoss(first, second) {
   effects.push(createTextEffect("게임이 콩쌤에게 지배당했습니다", x, Math.max(80, y - 80), "#f4dcff", 1450));
 }
 
-function addScore(points) {
-  score += points;
+function addScore(points, applyExperimentMultiplier = false) {
+  const gained = Math.max(0, Math.round(points * (applyExperimentMultiplier && isExperimentOverdrive ? 1.5 : 1)));
+  score += gained;
   scoreValue.textContent = score.toLocaleString("ko-KR");
+  return gained;
 }
 
 function updateBestDisplay() {
   const best = playerMode === "guest" ? getLocalNumber(GUEST_BEST_KEY) : getMemberBestScore();
-  bestValue.textContent = playerMode === "guest" ? `비회원 최고 ${formatScore(best)}` : `내 최고 ${formatScore(best)}`;
+  bestValue.textContent = playerMode === "guest" ? `GUEST BEST ${formatScore(best)}` : `LAB BEST ${formatScore(best)}`;
 }
 
 function getMemberBestScore() {
@@ -1136,6 +1210,10 @@ function formatScore(value) {
   return Number(value || 0).toLocaleString("ko-KR");
 }
 
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function updateNextPreview() {
   const stage = KONG_STAGES[currentLevel];
   nextStageName.textContent = stage.name;
@@ -1146,9 +1224,88 @@ function updateNextPreview() {
   };
 }
 
-function triggerStageEffects(levelIndex, x, y) {
+function addExperimentCharge(levelIndex, x, y) {
+  if (isExperimentOverdrive) return;
+
   const stage = KONG_STAGES[levelIndex];
-  effects.push(createMergeEffect(x, y, stage.color));
+  const charge = Math.round(3 + stage.id * 2.25);
+  experimentGauge = clamp(experimentGauge + charge, 0, EXPERIMENT_MAX);
+  updateExperimentUI(performance.now());
+
+  if (experimentGauge >= EXPERIMENT_MAX) activateExperimentOverdrive(x, y);
+}
+
+function activateExperimentOverdrive(x = boardWidth * 0.5, y = boardHeight * 0.42) {
+  isExperimentOverdrive = true;
+  experimentGauge = EXPERIMENT_MAX;
+  experimentOverdriveUntil = performance.now() + EXPERIMENT_DURATION;
+  gameFrame.classList.add("experiment-overdrive");
+  triggerScreenShake(9, 520);
+  safeVibrate(36);
+  effects.push(createFlashEffect("rgba(92, 245, 255, 0.28)", 420));
+  effects.push(createElectricEffect(x, y, "#75fff0", 1.65));
+  effects.push(createTextEffect("콩쌤 실험 폭주!", boardWidth * 0.5, boardHeight * 0.26, "#9cffef", 1450, 0.62));
+  updateExperimentUI(performance.now());
+}
+
+function deactivateExperimentOverdrive(showMessage = true) {
+  const wasActive = isExperimentOverdrive;
+  isExperimentOverdrive = false;
+  experimentGauge = 0;
+  experimentOverdriveUntil = 0;
+  gameFrame.classList.remove("experiment-overdrive");
+
+  if (showMessage && wasActive && gameActive && !gameScreen.hidden) {
+    effects.push(createTextEffect("실험 폭주 종료", boardWidth * 0.5, boardHeight * 0.26, "#e8fff9", 900, 0.42));
+  }
+
+  updateExperimentUI(performance.now());
+}
+
+function updateExperimentState(now) {
+  if (isExperimentOverdrive && now >= experimentOverdriveUntil) deactivateExperimentOverdrive(true);
+  updateExperimentUI(now);
+}
+
+function updateExperimentUI(now) {
+  const percent = Math.round(experimentGauge);
+  experimentFill.style.width = `${percent}%`;
+  experimentValue.textContent = `${percent}%`;
+
+  if (isExperimentOverdrive) {
+    const remaining = Math.max(0, Math.ceil((experimentOverdriveUntil - now) / 1000));
+    experimentModeLabel.textContent = "콩쌤 실험 폭주!";
+    experimentTimer.textContent = `${remaining}s`;
+    return;
+  }
+
+  experimentModeLabel.textContent = percent >= 70 ? "실험 임계치 접근" : "실험 게이지 안정";
+  experimentTimer.textContent = "READY";
+}
+
+function triggerStageEffects(levelIndex, x, y, gainedPoints) {
+  const stage = KONG_STAGES[levelIndex];
+  const power = 1 + levelIndex * 0.12 + (isExperimentOverdrive ? 0.52 : 0);
+  const particleCount = Math.round(12 + stage.id * 3.2 + (isExperimentOverdrive ? 12 : 0));
+
+  effects.push(createMergeEffect(x, y, stage.glowColor || stage.color, power));
+  effects.push(
+    createParticleBurst(
+      x,
+      y,
+      [stage.color, stage.accentColor, stage.glowColor || stage.color],
+      particleCount,
+      stage.id >= 8 ? "stars" : "sparkle",
+      680 + stage.id * 52,
+      power,
+    ),
+  );
+  effects.push(createTextEffect(`+${formatScore(gainedPoints)}점`, x, Math.max(52, y - 48), stage.accentColor, 720, 0.34));
+  effects.push(createTextEffect(stage.name, x, Math.min(boardHeight - 60, y + 42), stage.glowColor || stage.color, 880, 0.28));
+
+  if (isExperimentOverdrive) {
+    effects.push(createElectricEffect(x, y, stage.accentColor, 1.2 + stage.id * 0.08));
+  }
 
   if (stage.id === 5) {
     effects.push(createFlashEffect("rgba(255, 248, 190, 0.44)", 360));
@@ -1183,23 +1340,34 @@ function triggerStageEffects(levelIndex, x, y) {
     audio.playSpecial();
     safeVibrate([80, 35, 90]);
   }
+
+  maybeShowKongLine(levelIndex, x, y);
 }
 
-function createMergeEffect(x, y, color) {
-  return { kind: "merge", x, y, color, startedAt: performance.now(), duration: 620 };
+function maybeShowKongLine(levelIndex, x, y) {
+  const chance = levelIndex >= 7 ? 0.3 : 0.23;
+  if (Math.random() > chance) return;
+
+  const line = KONG_LINES[Math.floor(Math.random() * KONG_LINES.length)];
+  const stage = KONG_STAGES[levelIndex];
+  effects.push(createTextEffect(line, x, clamp(y - 92, 44, boardHeight - 90), stage.accentColor, 1050, 0.3));
+}
+
+function createMergeEffect(x, y, color, power = 1) {
+  return { kind: "merge", x, y, color, power, startedAt: performance.now(), duration: 560 + power * 90 };
 }
 
 function createFlashEffect(color, duration) {
   return { kind: "flash", color, startedAt: performance.now(), duration };
 }
 
-function createParticleBurst(x, y, colors, count, style, duration) {
+function createParticleBurst(x, y, colors, count, style, duration, power = 1) {
   const particles = Array.from({ length: count }, (_, index) => {
     const angle = (Math.PI * 2 * index) / count + Math.random() * 0.28;
     return {
       angle,
-      speed: 36 + Math.random() * 96,
-      size: 2.2 + Math.random() * 4.8,
+      speed: (36 + Math.random() * 96) * (0.78 + power * 0.22),
+      size: (2.2 + Math.random() * 4.8) * (0.9 + power * 0.16),
       color: colors[index % colors.length],
       spin: Math.random() * Math.PI,
     };
@@ -1208,14 +1376,15 @@ function createParticleBurst(x, y, colors, count, style, duration) {
   return { kind: "particles", style, x, y, particles, startedAt: performance.now(), duration };
 }
 
-function createElectricEffect(x, y, color) {
-  const bolts = Array.from({ length: 10 }, (_, index) => ({
-    angle: (Math.PI * 2 * index) / 10,
-    length: 46 + Math.random() * 70,
+function createElectricEffect(x, y, color, intensity = 1) {
+  const count = Math.round(8 + intensity * 4);
+  const bolts = Array.from({ length: count }, (_, index) => ({
+    angle: (Math.PI * 2 * index) / count,
+    length: (46 + Math.random() * 70) * intensity,
     color,
   }));
 
-  return { kind: "electric", x, y, bolts, startedAt: performance.now(), duration: 680 };
+  return { kind: "electric", x, y, bolts, intensity, startedAt: performance.now(), duration: 620 + intensity * 120 };
 }
 
 function createTextEffect(text, x, y, color, duration, scale = 1) {
@@ -1307,23 +1476,23 @@ function finishGame() {
 }
 
 function updateGameRecords() {
-  gameOverScore.textContent = `이번 점수: ${formatScore(score)}점`;
+  gameOverScore.textContent = `실험 점수: ${formatScore(score)}점`;
   rankingSubmitStatus.textContent = "";
 
   if (playerMode === "guest" || !currentUser) {
     localStorage.setItem(GUEST_LAST_KEY, String(score));
     const best = Math.max(score, getLocalNumber(GUEST_BEST_KEY));
     localStorage.setItem(GUEST_BEST_KEY, String(best));
-    gameOverBest.textContent = `비회원 최고점수: ${formatScore(best)}점`;
-    gameOverNotice.textContent = "로그인하면 랭킹에 도전할 수 있어요!";
+    gameOverBest.textContent = `GUEST BEST: ${formatScore(best)}점`;
+    gameOverNotice.textContent = "연구원 로그인 후 KONG LAB 랭킹에 도전할 수 있어요.";
     updateBestDisplay();
     return;
   }
 
   const localBest = Math.max(score, getMemberBestScore());
   setMemberBestScore(localBest);
-  gameOverBest.textContent = `내 최고점수: ${formatScore(localBest)}점`;
-  gameOverNotice.textContent = "회원 점수는 온라인 랭킹에 반영됩니다.";
+  gameOverBest.textContent = `LAB BEST: ${formatScore(localBest)}점`;
+  gameOverNotice.textContent = "연구원 실험 점수는 온라인 랭킹에 반영됩니다.";
   updateBestDisplay();
 
   if (!HAS_SUPABASE) {
@@ -1334,7 +1503,7 @@ function updateGameRecords() {
   rankingSubmitStatus.textContent = "온라인 랭킹 반영 중...";
   submitMemberScore(score)
     .then(({ bestScore, rank }) => {
-      gameOverBest.textContent = `내 최고점수: ${formatScore(bestScore)}점`;
+      gameOverBest.textContent = `LAB BEST: ${formatScore(bestScore)}점`;
       rankingSubmitStatus.textContent = rank ? `내 순위: ${rank}위` : "랭킹 저장 완료";
     })
     .catch((error) => {
@@ -1350,6 +1519,7 @@ function draw(now) {
   requestAnimationFrame(draw);
   if (!gameActive || gameScreen.hidden) return;
 
+  updateExperimentState(now);
   checkGameOver(now);
   ctx.clearRect(0, 0, boardWidth, boardHeight);
 
@@ -1359,7 +1529,7 @@ function draw(now) {
   drawBoardBackground(now);
   drawDangerLine(now);
   drawDropPreview();
-  drawPieces();
+  drawPieces(now);
   drawEffects(now);
   ctx.restore();
 }
@@ -1428,6 +1598,32 @@ function drawBoardBackground(now) {
 
   ctx.fillStyle = "rgba(255, 240, 130, 0.12)";
   ctx.fillRect(0, boardHeight - 10, boardWidth, 10);
+
+  if (isExperimentOverdrive) drawExperimentOverdriveBackground(now);
+}
+
+function drawExperimentOverdriveBackground(now) {
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  ctx.globalAlpha = 0.28 + Math.sin(now * 0.018) * 0.08;
+  ctx.fillStyle = "rgba(96, 255, 241, 0.14)";
+  for (let y = -20; y < boardHeight; y += 46) {
+    const offset = Math.sin(now * 0.01 + y * 0.08) * 20;
+    ctx.fillRect(offset, y, boardWidth, 3);
+  }
+
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 7; i += 1) {
+    const x = ((now * 0.08 + i * 73) % (boardWidth + 80)) - 40;
+    ctx.strokeStyle = i % 2 ? "rgba(255, 46, 67, 0.34)" : "rgba(117, 255, 240, 0.38)";
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    for (let y = 48; y < boardHeight; y += 64) {
+      ctx.lineTo(x + Math.sin(now * 0.012 + y) * 34, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawDangerLine(now) {
@@ -1473,11 +1669,20 @@ function drawDropPreview() {
   ctx.restore();
 }
 
-function drawPieces() {
+function drawPieces(now) {
   const orderedPieces = [...pieces].sort((a, b) => a.position.y - b.position.y);
   for (const piece of orderedPieces) {
-    drawFace(piece.plugin.level, piece.position.x, piece.position.y, piece.plugin.radius, false);
+    drawFace(piece.plugin.level, piece.position.x, piece.position.y, piece.plugin.radius * getPiecePopScale(piece, now), false);
   }
+}
+
+function getPiecePopScale(piece, now) {
+  if (!piece.plugin.popStartedAt) return 1;
+
+  const progress = (now - piece.plugin.popStartedAt) / piece.plugin.popDuration;
+  if (progress >= 1) return 1;
+
+  return 1 + Math.sin(progress * Math.PI) * piece.plugin.popPower;
 }
 
 function drawFace(levelIndex, x, y, radius, isPreview) {
@@ -1486,12 +1691,13 @@ function drawFace(levelIndex, x, y, radius, isPreview) {
   const hasImage = image?.complete && image.naturalWidth > 0;
   const box = radius * stage.drawScale;
   const glowColor = stage.glowColor || stage.color;
+  const glowBoost = isExperimentOverdrive && !isPreview ? 1.28 : 1;
 
   ctx.save();
   ctx.globalAlpha *= isPreview ? 0.76 : 1;
   drawFaceAura(stage, x, y, radius, isPreview);
   ctx.shadowColor = hexToRgba(glowColor, isPreview ? 0.38 : 0.62);
-  ctx.shadowBlur = Math.max(10, radius * 0.38);
+  ctx.shadowBlur = Math.max(10, radius * 0.38 * glowBoost);
   ctx.shadowOffsetY = Math.max(4, radius * 0.1);
 
   if (hasImage) {
@@ -1516,7 +1722,7 @@ function drawFace(levelIndex, x, y, radius, isPreview) {
 function drawFaceAura(stage, x, y, radius, isPreview) {
   const glowColor = stage.glowColor || stage.color;
   const accentColor = stage.accentColor || stage.color;
-  const alpha = isPreview ? 0.18 : 0.24;
+  const alpha = (isPreview ? 0.18 : 0.24) * (isExperimentOverdrive && !isPreview ? 1.42 : 1);
 
   ctx.save();
   ctx.globalCompositeOperation = "screen";
@@ -1528,6 +1734,12 @@ function drawFaceAura(stage, x, y, radius, isPreview) {
   ctx.beginPath();
   ctx.ellipse(x, y + radius * 0.02, radius * 1.28, radius * 1.46, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.strokeStyle = hexToRgba(glowColor, isPreview ? 0.22 : 0.36);
+  ctx.lineWidth = Math.max(2, radius * 0.055);
+  ctx.beginPath();
+  ctx.ellipse(x, y + radius * 0.02, radius * 1.02, radius * 1.08, 0, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1551,23 +1763,25 @@ function drawMergeEffect(effect, now, index) {
   }
 
   const alpha = 1 - progress;
-  const ringRadius = 20 + progress * 72;
+  const power = effect.power || 1;
+  const ringRadius = 18 + progress * 72 * power;
   ctx.save();
   ctx.strokeStyle = hexToRgba(effect.color, alpha);
-  ctx.lineWidth = 5 * alpha + 1;
+  ctx.lineWidth = (5 * alpha + 1) * Math.min(1.8, power);
   ctx.beginPath();
   ctx.arc(effect.x, effect.y, ringRadius, 0, Math.PI * 2);
   ctx.stroke();
 
   ctx.fillStyle = hexToRgba(effect.color, alpha);
-  for (let dot = 0; dot < 10; dot += 1) {
-    const angle = (Math.PI * 2 * dot) / 10 + progress * 1.3;
-    const distance = 18 + progress * 82;
+  const dotCount = Math.round(10 + power * 4);
+  for (let dot = 0; dot < dotCount; dot += 1) {
+    const angle = (Math.PI * 2 * dot) / dotCount + progress * 1.3;
+    const distance = 18 + progress * 82 * power;
     ctx.beginPath();
     ctx.arc(
       effect.x + Math.cos(angle) * distance,
       effect.y + Math.sin(angle) * distance,
-      Math.max(2, 5.5 * alpha),
+      Math.max(2, 5.5 * alpha * Math.min(1.6, power)),
       0,
       Math.PI * 2,
     );
@@ -1627,7 +1841,7 @@ function drawElectricEffect(effect, now, index) {
   const alpha = 1 - progress;
   ctx.save();
   ctx.globalCompositeOperation = "screen";
-  ctx.lineWidth = Math.max(2, 6 * alpha);
+  ctx.lineWidth = Math.max(2, 6 * alpha * (effect.intensity || 1));
   for (const bolt of effect.bolts) {
     ctx.strokeStyle = hexToRgba(bolt.color, alpha);
     ctx.beginPath();
@@ -1658,7 +1872,14 @@ function drawTextCanvasEffect(effect, now, index) {
   ctx.globalAlpha = alpha;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `1000 ${Math.max(22, boardWidth * 0.1 * effect.scale)}px system-ui, sans-serif`;
+  let fontSize = Math.max(18, boardWidth * 0.1 * effect.scale);
+  ctx.font = `1000 ${fontSize}px system-ui, sans-serif`;
+  const maxWidth = boardWidth * 0.9;
+  const measured = ctx.measureText(effect.text).width;
+  if (measured > maxWidth) {
+    fontSize = Math.max(13, fontSize * (maxWidth / measured));
+    ctx.font = `1000 ${fontSize}px system-ui, sans-serif`;
+  }
   ctx.lineWidth = Math.max(4, boardWidth * 0.012);
   ctx.strokeStyle = "rgba(0,0,0,0.72)";
   ctx.fillStyle = effect.color;
@@ -1931,7 +2152,7 @@ function renderRankingRows(rows) {
 
 async function renderMyRank() {
   if (!currentUser) {
-    myRankBox.textContent = "로그인하면 내 순위를 확인할 수 있어요.";
+    myRankBox.textContent = "연구원 로그인 후 내 실험 순위를 확인할 수 있어요.";
     return;
   }
 
@@ -1942,7 +2163,7 @@ async function renderMyRank() {
   }
 
   const rank = await fetchRankForScore(Number(own.best_score || 0));
-  myRankBox.textContent = `내 순위: ${rank}위 / 내 최고점수: ${formatScore(own.best_score)}점`;
+  myRankBox.textContent = `내 실험 순위: ${rank}위 / LAB BEST: ${formatScore(own.best_score)}점`;
 }
 
 function escapeHtml(value) {
@@ -2016,6 +2237,8 @@ document.addEventListener("click", (event) => {
 
 canvas.addEventListener("pointermove", updateDropPosition);
 canvas.addEventListener("pointerdown", (event) => {
+  if (event.cancelable) event.preventDefault();
+  canvas.setPointerCapture?.(event.pointerId);
   updateDropPosition(event);
   dropPiece();
 });

@@ -20,11 +20,15 @@ html,
 body,
 #app {
   min-height: 100%;
+  overscroll-behavior: none;
 }
 
 body {
   margin: 0;
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   background:
     linear-gradient(135deg, rgba(255, 112, 174, 0.22), transparent 26%),
     linear-gradient(220deg, rgba(69, 214, 255, 0.16), transparent 34%),
@@ -40,6 +44,25 @@ canvas {
 button,
 input {
   font: inherit;
+}
+
+button,
+label,
+input {
+  touch-action: manipulation;
+}
+
+input,
+textarea,
+select {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+
+img,
+canvas {
+  -webkit-user-drag: none;
 }
 
 button {
@@ -84,6 +107,10 @@ button:disabled {
   height: min(100svh - clamp(16px, 3.2vmin, 44px), calc((100vw - clamp(16px, 3.2vmin, 44px)) * 16 / 9));
   aspect-ratio: 9 / 16;
   overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   border: 2px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
   background:
@@ -97,6 +124,27 @@ button:disabled {
   box-shadow:
     0 24px 70px rgba(0, 0, 0, 0.6),
     inset 0 0 0 4px rgba(255, 255, 255, 0.035);
+}
+
+.shorts-frame button,
+.shorts-frame input,
+.shorts-frame label,
+.modal-overlay,
+.ranking-table-wrap {
+  touch-action: manipulation;
+}
+
+.modal-panel,
+.modal-panel * {
+  -webkit-touch-callout: default;
+}
+
+.experiment-overdrive {
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.6),
+    0 0 34px rgba(117, 255, 240, 0.34),
+    0 0 52px rgba(255, 46, 67, 0.24),
+    inset 0 0 0 4px rgba(117, 255, 240, 0.08);
 }
 
 .pause-button {
@@ -285,7 +333,7 @@ h2 {
 
 .home-face-strip img:nth-child(3) {
   --preview-glow: rgba(154, 124, 255, 0.34);
-  transform: rotate(3deg) scale(0.94);
+  transform: rotate(3deg) scale(0.98);
 }
 
 .home-actions,
@@ -417,7 +465,7 @@ h2 {
 
 .game-shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: clamp(7px, 1.15vmin, 12px);
   padding: clamp(9px, 1.75vmin, 16px);
 }
@@ -468,6 +516,109 @@ h2 {
   font-weight: 1000;
 }
 
+.experiment-rack {
+  min-height: clamp(44px, 7.4vmin, 58px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(92px, 1.25fr) auto;
+  align-items: center;
+  gap: clamp(7px, 1.2vmin, 10px);
+  padding: clamp(7px, 1.2vmin, 10px);
+  border: 1px solid rgba(117, 255, 240, 0.42);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(117, 255, 240, 0.12), rgba(177, 76, 255, 0.1), rgba(255, 46, 67, 0.08)),
+    rgba(3, 9, 14, 0.72);
+  box-shadow:
+    inset 0 0 20px rgba(117, 255, 240, 0.07),
+    0 8px 0 rgba(0, 0, 0, 0.18);
+}
+
+.experiment-label {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.experiment-label span,
+.experiment-readout small {
+  color: rgba(211, 255, 248, 0.72);
+  font-size: clamp(8px, 1.16vmin, 11px);
+  line-height: 1;
+  font-weight: 1000;
+}
+
+.experiment-label strong {
+  min-width: 0;
+  color: #9cffef;
+  font-size: clamp(11px, 1.55vmin, 15px);
+  line-height: 1.08;
+  font-weight: 1000;
+  overflow-wrap: anywhere;
+  text-shadow: 0 0 12px rgba(117, 255, 240, 0.46);
+}
+
+.experiment-meter {
+  height: clamp(13px, 2vmin, 17px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.44);
+}
+
+.experiment-meter span {
+  width: 0%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0 8px, transparent 8px 16px),
+    linear-gradient(90deg, #55ffe5, #fff57a 58%, #ff2e43);
+  box-shadow:
+    0 0 12px rgba(117, 255, 240, 0.55),
+    0 0 20px rgba(255, 46, 67, 0.2);
+  transition: width 180ms ease-out;
+}
+
+.experiment-readout {
+  min-width: 45px;
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.experiment-readout strong {
+  color: #fff5a7;
+  font-size: clamp(14px, 2.15vmin, 20px);
+  line-height: 1;
+  font-weight: 1000;
+}
+
+.experiment-overdrive .experiment-rack {
+  border-color: rgba(255, 46, 67, 0.72);
+  animation: rackPulse 480ms steps(2, end) infinite;
+}
+
+.experiment-overdrive .experiment-meter span {
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.32) 0 6px, transparent 6px 12px),
+    linear-gradient(90deg, #75fff0, #b14cff 54%, #ff2e43);
+  box-shadow:
+    0 0 16px rgba(117, 255, 240, 0.82),
+    0 0 24px rgba(255, 46, 67, 0.44);
+}
+
+@keyframes rackPulse {
+  0%,
+  100% {
+    filter: saturate(1.1);
+  }
+
+  50% {
+    filter: saturate(1.8) contrast(1.1);
+  }
+}
+
 .game-layout {
   min-height: 0;
   display: grid;
@@ -488,6 +639,10 @@ h2 {
 .board-panel {
   position: relative;
   overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   background: #07080a;
 }
 
@@ -497,6 +652,9 @@ h2 {
   height: 100%;
   cursor: crosshair;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .game-message {
@@ -549,6 +707,7 @@ h2 {
 
 .guide-item {
   min-height: 0;
+  overflow: hidden;
   display: grid;
   grid-template-columns: clamp(38px, 5.4vmin, 52px) minmax(0, 1fr);
   align-items: center;
@@ -572,6 +731,7 @@ h2 {
   display: block;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .guide-face img {
@@ -602,6 +762,7 @@ h2 {
   white-space: normal;
   word-break: keep-all;
   overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .guide-item small {
@@ -760,6 +921,7 @@ h2 {
 .ranking-table-wrap {
   min-height: 0;
   overflow: auto;
+  touch-action: pan-y;
   border: 2px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.34);
@@ -860,45 +1022,97 @@ h2 {
   }
 
   .game-shell {
-    padding: 9px;
-    gap: 7px;
+    padding: 8px;
+    gap: 6px;
   }
 
   .top-bar {
     padding-right: 48px;
+    gap: 7px;
+  }
+
+  .title-block h1 {
+    font-size: clamp(20px, 7vw, 30px);
+  }
+
+  .title-block p {
+    font-size: 11px;
+  }
+
+  .score-card {
+    min-width: 78px;
+    padding: 6px;
+  }
+
+  .score-card span,
+  .score-card small {
+    font-size: 8.6px;
+  }
+
+  .score-card strong {
+    font-size: clamp(19px, 6vw, 26px);
+  }
+
+  .experiment-rack {
+    min-height: 42px;
+    grid-template-columns: minmax(0, 0.92fr) minmax(72px, 1fr) auto;
+    gap: 5px;
+    padding: 6px;
+  }
+
+  .experiment-label span,
+  .experiment-readout small {
+    font-size: 7.5px;
+  }
+
+  .experiment-label strong {
+    font-size: 10.2px;
+  }
+
+  .experiment-readout {
+    min-width: 37px;
+  }
+
+  .experiment-readout strong {
+    font-size: 13px;
   }
 
   .game-layout {
-    grid-template-columns: minmax(0, 1fr) 116px;
-    gap: 7px;
+    grid-template-columns: minmax(0, 1fr) minmax(132px, 37vw);
+    gap: 6px;
   }
 
   .guide-panel {
     padding: 5px;
   }
 
+  .guide-title {
+    padding-bottom: 5px;
+    font-size: 13px;
+  }
+
   .guide-item {
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 44px minmax(0, 1fr);
     justify-items: stretch;
     align-items: center;
-    gap: 4px;
-    padding: 3px 4px;
+    gap: 5px;
+    padding: 4px 5px;
     text-align: left;
   }
 
   .guide-face {
-    width: 34px;
-    height: clamp(21px, 5.3vw, 32px);
+    width: 44px;
+    height: min(44px, 100%);
   }
 
   .guide-item strong {
-    font-size: 7.4px;
-    line-height: 1.04;
-    max-height: 2.18em;
+    font-size: clamp(8.4px, 2.35vw, 10.4px);
+    line-height: 1.08;
+    max-height: 2.24em;
   }
 
   .guide-item small {
-    font-size: 7.2px;
+    font-size: 8px;
   }
 
   .bottom-bar {
