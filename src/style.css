@@ -599,6 +599,19 @@ h2 {
   animation: rackPulse 480ms steps(2, end) infinite;
 }
 
+.experiment-overdrive .experiment-label strong {
+  color: #ff74f5;
+  text-shadow:
+    0 0 10px rgba(255, 46, 67, 0.7),
+    0 0 18px rgba(177, 76, 255, 0.62);
+}
+
+.experiment-overdrive .experiment-readout strong,
+.experiment-overdrive .experiment-readout small {
+  color: #fff1a8;
+  text-shadow: 0 0 12px rgba(255, 46, 67, 0.55);
+}
+
 .experiment-overdrive .experiment-meter span {
   background:
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.32) 0 6px, transparent 6px 12px),
@@ -606,6 +619,68 @@ h2 {
   box-shadow:
     0 0 16px rgba(117, 255, 240, 0.82),
     0 0 24px rgba(255, 46, 67, 0.44);
+}
+
+.overdrive-intro-overlay {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, rgba(177, 76, 255, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(255, 20, 58, 0.08), rgba(0, 0, 0, 0.12));
+  animation: overdriveOverlayFlash 2.1s ease both;
+}
+
+.overdrive-intro-image {
+  width: clamp(210px, 66%, 520px);
+  max-height: 42%;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 0 14px rgba(255, 46, 67, 0.72))
+    drop-shadow(0 0 24px rgba(177, 76, 255, 0.66))
+    drop-shadow(0 16px 18px rgba(0, 0, 0, 0.58));
+  animation: overdriveIntroImage 2.1s ease both;
+}
+
+@keyframes overdriveIntroImage {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  15% {
+    opacity: 1;
+    transform: scale(0.96);
+  }
+
+  28%,
+  72% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes overdriveOverlayFlash {
+  0% {
+    opacity: 0;
+  }
+
+  10%,
+  82% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes rackPulse {

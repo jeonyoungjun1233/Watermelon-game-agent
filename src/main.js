@@ -1,6 +1,8 @@
 import Matter from "matter-js";
 import { createClient } from "@supabase/supabase-js";
 import "./style.css";
+import overdriveImageUrl from "./assets/effects/experiment-overdrive.png";
+import overdriveBgmUrl from "./assets/audio/overdrive-mode.mp3";
 
 const { Engine, World, Bodies, Body, Events, Runner } = Matter;
 const KONG_ASSET_BASE = "/assets/kong";
@@ -178,6 +180,7 @@ const MEDIA = {
   merge: "/media/merge-pop.mp4",
   button: "/media/button-ding.mp4",
   bgm: "/media/meme-bgm.mp4",
+  overdrive: overdriveBgmUrl,
   special: "/media/old100-appear.mp4",
   gameOver: "/media/old100-appear.mp4",
 };
@@ -469,6 +472,7 @@ let shakeIntensity = 0;
 let shakeDuration = 1;
 let experimentGauge = 0;
 let isExperimentOverdrive = false;
+let isExperimentOverdriveIntro = false;
 let experimentOverdriveUntil = 0;
 
 window.KONG_STAGES = KONG_STAGES;
@@ -557,6 +561,10 @@ function createAudioSystem(getSettings) {
   fallbackBgm.loop = true;
   fallbackBgm.preload = "metadata";
   fallbackBgm.volume = 0.2;
+  const fallbackOverdriveBgm = new Audio(MEDIA.overdrive);
+  fallbackOverdriveBgm.loop = true;
+  fallbackOverdriveBgm.preload = "metadata";
+  fallbackOverdriveBgm.volume = 0.56;
 
   const fallbackPools = {
     merge: createFallbackPool(MEDIA.merge, 6, 0.48),
@@ -569,6 +577,7 @@ function createAudioSystem(getSettings) {
   const decodedAudio = new Map();
   const volumes = {
     bgm: 0.2,
+    overdrive: 0.56,
     merge: 0.48,
     button: 0.34,
     special: 0.78,
@@ -579,7 +588,11 @@ function createAudioSystem(getSettings) {
   let bgmGain = null;
   let sfxGain = null;
   let bgmSource = null;
+  let overdriveSource = null;
+  let overdriveGain = null;
   let bgmStarting = false;
+  let overdriveStarting = false;
+  let overdriveAudioActive = false;
   let unlocked = false;
   let bgmTargetVolume = getSettings().music ? volumes.bgm : 0;
 
@@ -598,10 +611,13 @@ function createAudioSystem(getSettings) {
     if (!audioContext) {
       audioContext = new AudioContextClass();
       bgmGain = audioContext.createGain();
+      overdriveGain = audioContext.createGain();
       sfxGain = audioContext.createGain();
       bgmGain.gain.value = bgmTargetVolume;
+      overdriveGain.gain.value = 0;
       sfxGain.gain.value = 1;
       bgmGain.connect(audioContext.destination);
+      overdriveGain.connect(audioContext.destination);
       sfxGain.connect(audioContext.destination);
     }
 
@@ -651,6 +667,13 @@ function createAudioSystem(getSettings) {
       return;
     }
 
+    if (key === "overdrive") {
+      if (!getSettings().music) return;
+      fallbackOverdriveBgm.volume = volumes.overdrive;
+      fallbackOverdriveBgm.play().catch(() => {});
+      return;
+    }
+
     const pool = fallbackPools[key];
     if (!pool || !getSettings().sfx) return;
 
@@ -661,7 +684,7 @@ function createAudioSystem(getSettings) {
   }
 
   function startBgm() {
-    if (!unlocked || !getSettings().music) return false;
+    if (!unlocked || !getSettings().music || overdriveAudioActive) return false;
     if (bgmSource || bgmStarting) return true;
 
     if (!AudioContextClass) {
@@ -675,7 +698,7 @@ function createAudioSystem(getSettings) {
       .then((buffer) => {
         const context = ensureContext();
         bgmStarting = false;
-        if (!context || bgmSource || !getSettings().music) return;
+        if (!context || bgmSource || !getSettings().music || overdriveAudioActive) return;
 
         const source = context.createBufferSource();
         source.buffer = buffer;
@@ -699,11 +722,19 @@ function createAudioSystem(getSettings) {
 
   function pauseBgm() {
     setBgmVolume(0);
+    if (bgmSource) {
+      try {
+        bgmSource.stop();
+      } catch {}
+      bgmSource = null;
+    }
+    bgmStarting = false;
     fallbackBgm.pause();
+    fallbackBgm.currentTime = 0;
   }
 
   function resumeBgm() {
-    if (!unlocked || !getSettings().music) {
+    if (!unlocked || !getSettings().music || overdriveAudioActive) {
       pauseBgm();
       return;
     }
@@ -714,6 +745,69 @@ function createAudioSystem(getSettings) {
     const bgmHandled = startBgm();
 
     if (!bgmHandled && !bgmSource) playFallback("bgm");
+  }
+
+  function startOverdriveBgm() {
+    overdriveAudioActive = true;
+    pauseBgm();
+
+    if (!unlocked || !getSettings().music) return;
+
+    const context = ensureContext();
+    if (context?.state === "suspended") context.resume().catch(() => {});
+
+    if (!AudioContextClass) {
+      playFallback("overdrive");
+      return;
+    }
+
+    if (overdriveSource || overdriveStarting) return;
+    overdriveStarting = true;
+
+    decodeAudio("overdrive")
+      .then((buffer) => {
+        const activeContext = ensureContext();
+        overdriveStarting = false;
+        if (!activeContext || overdriveSource || !getSettings().music || !overdriveAudioActive) return;
+
+        const source = activeContext.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(overdriveGain);
+        overdriveGain.gain.setTargetAtTime(volumes.overdrive, activeContext.currentTime, 0.035);
+        source.onended = () => {
+          if (overdriveSource === source) overdriveSource = null;
+        };
+        fallbackOverdriveBgm.pause();
+        fallbackOverdriveBgm.currentTime = 0;
+        source.start(0);
+        overdriveSource = source;
+      })
+      .catch(() => {
+        overdriveStarting = false;
+        if (!overdriveSource) playFallback("overdrive");
+      });
+  }
+
+  function stopOverdriveBgm({ resumeNormal = true } = {}) {
+    overdriveAudioActive = false;
+    overdriveStarting = false;
+
+    if (audioContext && overdriveGain) {
+      overdriveGain.gain.setTargetAtTime(0, audioContext.currentTime, 0.04);
+    }
+
+    if (overdriveSource) {
+      try {
+        overdriveSource.stop();
+      } catch {}
+      overdriveSource = null;
+    }
+
+    fallbackOverdriveBgm.pause();
+    fallbackOverdriveBgm.currentTime = 0;
+
+    if (resumeNormal && getSettings().music) resumeBgm();
   }
 
   function unlock() {
@@ -730,6 +824,7 @@ function createAudioSystem(getSettings) {
       resumeBgm();
       decodeAudio("merge").catch(() => {});
       decodeAudio("button").catch(() => {});
+      decodeAudio("overdrive").catch(() => {});
       decodeAudio("special").catch(() => {});
       decodeAudio("gameOver").catch(() => {});
     });
@@ -766,6 +861,7 @@ function createAudioSystem(getSettings) {
 
   window.setTimeout(() => {
     fetchAudio("bgm").catch(() => {});
+    fetchAudio("overdrive").catch(() => {});
     fetchAudio("merge").catch(() => {});
     fetchAudio("button").catch(() => {});
     fetchAudio("special").catch(() => {});
@@ -775,10 +871,19 @@ function createAudioSystem(getSettings) {
   return {
     unlock,
     applySettings() {
-      if (getSettings().music) resumeBgm();
-      else pauseBgm();
+      if (!getSettings().music) {
+        stopOverdriveBgm({ resumeNormal: false });
+        pauseBgm();
+      } else if (overdriveAudioActive) {
+        startOverdriveBgm();
+      } else {
+        resumeBgm();
+      }
     },
     resumeBgm,
+    pauseBgm,
+    startOverdriveBgm,
+    stopOverdriveBgm,
     playMerge() {
       playEffect("merge");
     },
@@ -817,6 +922,7 @@ function syncSettingsControls() {
 function updateSetting(key, value) {
   userSettings = { ...userSettings, [key]: value };
   saveSettings();
+  if (key === "music" && value && isExperimentOverdrive) audio.startOverdriveBgm();
   syncSettingsControls();
 }
 
@@ -980,6 +1086,8 @@ function startGame(mode) {
 function stopGame() {
   gameActive = false;
   isPaused = false;
+  isExperimentOverdriveIntro = false;
+  audio.stopOverdriveBgm({ resumeNormal: false });
   if (runner) Runner.stop(runner);
   runner = null;
 
@@ -1012,6 +1120,7 @@ function resetGame() {
   canDrop = true;
   isGameOver = false;
   isPaused = false;
+  isExperimentOverdriveIntro = false;
   gameActive = true;
   gameOverHandled = false;
   dangerStartedAt = null;
@@ -1225,7 +1334,7 @@ function updateNextPreview() {
 }
 
 function addExperimentCharge(levelIndex, x, y) {
-  if (isExperimentOverdrive) return;
+  if (isExperimentOverdrive || isExperimentOverdriveIntro) return;
 
   const stage = KONG_STAGES[levelIndex];
   const charge = Math.round(3 + stage.id * 2.25);
@@ -1236,24 +1345,34 @@ function addExperimentCharge(levelIndex, x, y) {
 }
 
 function activateExperimentOverdrive(x = boardWidth * 0.5, y = boardHeight * 0.42) {
+  if (isExperimentOverdrive || isExperimentOverdriveIntro) return;
+
+  isExperimentOverdriveIntro = true;
   isExperimentOverdrive = true;
   experimentGauge = EXPERIMENT_MAX;
   experimentOverdriveUntil = performance.now() + EXPERIMENT_DURATION;
   gameFrame.classList.add("experiment-overdrive");
-  triggerScreenShake(9, 520);
-  safeVibrate(36);
-  effects.push(createFlashEffect("rgba(92, 245, 255, 0.28)", 420));
-  effects.push(createElectricEffect(x, y, "#75fff0", 1.65));
-  effects.push(createTextEffect("콩쌤 실험 폭주!", boardWidth * 0.5, boardHeight * 0.26, "#9cffef", 1450, 0.62));
+  audio.startOverdriveBgm();
+  freezeGameForOverdriveIntro();
+  showOverdriveIntroImage();
+  triggerScreenShake(11, 620);
+  safeVibrate([34, 22, 42]);
+  effects.push(createFlashEffect("rgba(190, 28, 255, 0.2)", 260));
+  effects.push(createFlashEffect("rgba(255, 20, 58, 0.16)", 430));
+  effects.push(createElectricEffect(x, y, "#ff2e43", 1.92));
+  effects.push(createElectricEffect(x, y, "#b14cff", 1.72));
+  effects.push(createTextEffect("콩쌤 실험 폭주!", boardWidth * 0.5, boardHeight * 0.26, "#ff5cf4", 1450, 0.62));
   updateExperimentUI(performance.now());
 }
 
 function deactivateExperimentOverdrive(showMessage = true) {
   const wasActive = isExperimentOverdrive;
   isExperimentOverdrive = false;
+  isExperimentOverdriveIntro = false;
   experimentGauge = 0;
   experimentOverdriveUntil = 0;
   gameFrame.classList.remove("experiment-overdrive");
+  audio.stopOverdriveBgm({ resumeNormal: true });
 
   if (showMessage && wasActive && gameActive && !gameScreen.hidden) {
     effects.push(createTextEffect("실험 폭주 종료", boardWidth * 0.5, boardHeight * 0.26, "#e8fff9", 900, 0.42));
@@ -1274,13 +1393,44 @@ function updateExperimentUI(now) {
 
   if (isExperimentOverdrive) {
     const remaining = Math.max(0, Math.ceil((experimentOverdriveUntil - now) / 1000));
-    experimentModeLabel.textContent = "콩쌤 실험 폭주!";
-    experimentTimer.textContent = `${remaining}s`;
+    experimentModeLabel.textContent = "⚡ 실험 폭주 진행중";
+    experimentTimer.textContent = `남은 시간 ${remaining}초`;
     return;
   }
 
   experimentModeLabel.textContent = percent >= 70 ? "실험 임계치 접근" : "실험 게이지 안정";
   experimentTimer.textContent = "READY";
+}
+
+function freezeGameForOverdriveIntro() {
+  const previousCanDrop = canDrop;
+  canDrop = false;
+  if (runner) runner.enabled = false;
+
+  window.setTimeout(() => {
+    isExperimentOverdriveIntro = false;
+    if (runner && gameActive && !isGameOver && !isPaused) runner.enabled = true;
+    if (!isGameOver && !isPaused) canDrop = previousCanDrop;
+  }, 300);
+}
+
+function showOverdriveIntroImage() {
+  const image = document.createElement("img");
+  image.className = "overdrive-intro-image";
+  image.src = overdriveImageUrl;
+  image.alt = "실험 폭주 시작";
+  image.decoding = "async";
+  image.draggable = false;
+
+  const overlay = document.createElement("div");
+  overlay.className = "overdrive-intro-overlay";
+  overlay.setAttribute("aria-hidden", "true");
+  overlay.append(image);
+  gameFrame.append(overlay);
+
+  window.setTimeout(() => {
+    overlay.remove();
+  }, 2100);
 }
 
 function triggerStageEffects(levelIndex, x, y, gainedPoints) {
@@ -1415,7 +1565,7 @@ function triggerScreenShake(intensity, duration) {
 }
 
 function dropPiece() {
-  if (!gameActive || isPaused || !canDrop || isGameOver) return;
+  if (!gameActive || isPaused || isExperimentOverdriveIntro || !canDrop || isGameOver) return;
 
   const levelIndex = currentLevel;
   const body = createPiece(levelIndex, clampDropX(dropX, levelIndex), dropYFor(levelIndex));
@@ -1469,6 +1619,7 @@ function finishGame() {
   canDrop = false;
   if (runner) runner.enabled = false;
   gameMessage.hidden = false;
+  if (isExperimentOverdrive) deactivateExperimentOverdrive(false);
   audio.playGameOver();
   safeVibrate([42, 24, 52]);
   updateGameRecords();
